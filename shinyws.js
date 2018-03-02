@@ -12,68 +12,49 @@
       global[name] = theModule;
     }
   })('ShinyWebSocket', function () {
-    function TinyEventEmitter() {
-        let events = {};
-
-        this.on = function(evtName, fn) {
-            let evt = events[evtName] || [];
-            evt.push(fn);
-        }
-
-        this.emit = function(eventName, args) {
-            let evt = events[evtName] || [];
-            if(!evt)
-                return;
-
-            evt.map(function(fn) { fn.call(fn, args); });
-        }
-
-        this.remove = function(evtName, fn) {
-            let evt = events[evtName] || [];
-            if(!evt)
-                return;
-
-            let idx = evt.indexOf(fn);
-            if(id > -1)
-                evt.splice(idx, 1);
-        }
-    }
-
     function WebSocketRoute(p, w) {
         let path = p;
-        let events = {
-            onconnect: [],
+        this.events = {
+            onopen: [],
             onclose: [],
             onmessage: [],
             onerror: []
         }
 
-        let ws = w;
+        this.ws = w;
     }
     
     function ShinyWebSocket(baseURL, evtEmitter) {
         let routes = {};
-        let eventEmitter = evtEmitter || new TinyEventEmitter();
         this.baseURL = baseURL;
+
 
         this.CreateRoute = function (path) {
             let ws = new WebSocket(this.baseURL + path);
             let route = new WebSocketRoute(path, ws);
 
             ws.onopen = function() { 
-                eventEmitter.emit('open', { route: route });
+                route.events.onopen.map(function(fn) {
+                    fn.call(fn);
+                })
             }
 
             ws.onclose = function() { 
-                eventEmitter.emit('close', { route: route });
+                route.events.onclose.map(function(fn) {
+                    fn.call(fn);
+                })
             }
 
             ws.onmessage = function(args) {
-                eventEmitter.emit('message', { route: route, args: args });
+                route.events.onmessage.map(function(fn) {
+                    fn.call(fn, args);
+                })
             }
 
             ws.onerror = function(args) {
-                eventEmitter.emit('error', { route: route, args: args });
+                route.events.onerror.map(function(fn) {
+                    fn.call(fn, args);
+                })
             }
 
             routes[path] = route;
@@ -82,26 +63,31 @@
 
         this.OnOpen = function(path, fn) {
             let route = getRoute(path);
-            route.onopen.push(fn);
+            route.events.onopen.push(fn);
             return this;
         }
 
         this.OnClose = function(path, fn) {
             let route = getRoute(path);
-            route.onclose.push(fn);
+            route.events.onclose.push(fn);
             return this;
         }
 
         this.OnError = function(path, fn) {
             let route = getRoute(path);
-            route.onerror.push(fn);
+            route.events.onerror.push(fn);
             return this;
         }
 
         this.OnMessage = function(path, fn) {
             let route = getRoute(path);
-            route.onmessage.push(fn);
+            route.events.onmessage.push(fn);
             return this;
+        }
+
+        this.Send = function(path, msg) {
+            let route = getRoute(path);
+            route.ws.send(msg);
         }
 
         function getRoute(path) {
@@ -111,7 +97,7 @@
 
             return route;
         }
-
-        return ShinyWebSocket;
     }
+
+    return ShinyWebSocket;
   });
