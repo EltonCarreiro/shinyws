@@ -13,6 +13,7 @@
     }
   })('ShinyWebSocket', function () {
     function WebSocketRoute(p, w) {
+        let self = this;
         let path = p;
         this.events = {
             onopen: [],
@@ -22,6 +23,20 @@
         }
 
         this.ws = w;
+        let isOpened = false;
+        let messageQueue = [];
+        this.events.onopen.push(function() {
+            isOpened = true;
+            messageQueue.map(function(msg) {
+                self.ws.send(msg);
+            });
+        });
+        this.trySend = function(msg) {
+            if(isOpened)
+                return this.ws.send(msg);
+
+            messageQueue.push(msg);
+        }
     }
     
     function ShinyWebSocket(baseURL, evtEmitter) {
@@ -87,7 +102,8 @@
 
         this.Send = function(path, msg) {
             let route = getRoute(path);
-            route.ws.send(msg);
+            route.trySend(msg);
+            return this;
         }
 
         function getRoute(path) {
