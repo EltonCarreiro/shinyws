@@ -35,3 +35,25 @@ The object of the fluent syntax is to just help you to make one-time configurati
     alert(msg.data);
   });
 ```
+
+ShinyWebsocket also wants to help you inspect how things are going on by calling the route description method:
+
+```javascript
+ws.GetRoutesDescription()
+```
+
+Which will give you an JSON object containing the registered routes, whether they are opened or not and the amount of handlers that are registered.
+
+```javascript
+{
+  "/echo": {
+    "isOpen": true,
+    "eventHandlers": {
+      "onclose": 0,
+      "onmessage": 1,
+      "onerror": 0,
+      "onopen": 1
+    }
+  }
+}
+```
