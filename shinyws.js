@@ -27,19 +27,40 @@
         let messageQueue = [];
         this.events.onopen.push(function() {
             isOpened = true;
+            // TODO: Add try/catch and remove only succesfully sent messages
             messageQueue.map(function(msg) {
                 self.ws.send(msg);
             });
+            messageQueue = [];
         });
+
+        this.events.onclose.push(function() {
+            isOpened = false;
+        });
+
         this.trySend = function(msg) {
             if(isOpened)
                 return this.ws.send(msg);
 
             messageQueue.push(msg);
         }
+
+        this.describe = function() {
+            return {
+                path: path,
+                isOpen: isOpened,
+                eventHandlers: {
+                    onclose: this.events.onclose.length-1,
+                    onmessage: this.events.onmessage.length,
+                    onerror: this.events.onerror.length,
+                    onopen: this.events.onopen.length-1
+                }
+            }
+        }
     }
     
     function ShinyWebSocket(baseURL, evtEmitter) {
+        let self = this;
         let routes = {};
         this.baseURL = baseURL;
 
@@ -104,6 +125,19 @@
             let route = getRoute(path);
             route.trySend(msg);
             return this;
+        }
+
+        this.GetRoutesDescription = function() {
+            let descriptions = {};
+            let r = routes;
+            for(let k in r) {
+                if(!r.hasOwnProperty(k))
+                    return;
+
+                descriptions[k] = r[k].describe();
+            }
+
+            return descriptions;
         }
 
         function getRoute(path) {
